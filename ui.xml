@@ -1,0 +1,10 @@
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite name="UI Suite" parallel="methods" thread-count="4" data-provider-thread-count="2">
+    <test name="UI and hybrid tests">
+        <groups><run><include name="ui"/><include name="hybrid"/></run></groups>
+        <packages>
+            <package name="com.saransh.automation.ui"/>
+            <package name="com.saransh.automation.hybrid"/>
+        </packages>
+    </test>
+</suite>

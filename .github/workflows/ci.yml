@@ -1,0 +1,104 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  api-tests:
+    name: api-tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+      - name: Run API tests
+        run: mvn -B -Dsuite=api.xml -Dgroups=api test
+      - name: Upload Allure results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: allure-results-api
+          path: target/allure-results
+          retention-days: 14
+
+  ui-tests:
+    name: ui-tests
+    runs-on: ubuntu-latest
+    services:
+      selenium:
+        image: selenium/standalone-chrome:4.52.0
+        ports:
+          - 4444:4444
+        options: --shm-size=2g
+        env:
+          SE_NODE_MAX_SESSIONS: "4"
+          SE_NODE_OVERRIDE_MAX_SESSIONS: "true"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+      - name: Wait for Selenium
+        run: |
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:4444/status | grep -q '"ready": true' && exit 0
+            sleep 2
+          done
+          echo "Selenium did not become ready" && exit 1
+      - name: Run UI + hybrid tests (headless Chrome on the service container)
+        run: mvn -B -Dsuite=ui.xml -DgridUrl=http://localhost:4444 -Dbrowser=chrome -Dheadless=true test
+      - name: Upload Allure results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: allure-results-ui
+          path: target/allure-results
+          retention-days: 14
+
+  allure-report:
+    name: publish-allure-report
+    needs: [api-tests, ui-tests]
+    if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download all Allure results
+        uses: actions/download-artifact@v8
+        with:
+          pattern: allure-results-*
+          merge-multiple: true
+          path: allure-results
+      - name: Fetch previous report (for history/trends)
+        uses: actions/checkout@v7
+        continue-on-error: true
+        with:
+          ref: gh-pages
+          path: gh-pages
+      - name: Generate Allure report with history
+        uses: simple-elf/allure-report-action@v1.15
+        with:
+          allure_results: allure-results
+          gh_pages: gh-pages
+          allure_history: allure-history
+          keep_reports: 20
+      - name: Publish to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: allure-history
