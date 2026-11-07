@@ -1,0 +1,6 @@
+[
+  {"term": "top", "minResults": "5"},
+  {"term": "jeans", "minResults": "1"},
+  {"term": "dress", "minResults": "3"},
+  {"term": "tshirt", "minResults": "1"}
+]
