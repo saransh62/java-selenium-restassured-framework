@@ -1,0 +1,5 @@
+[
+  {"term": "Top", "expectedProduct": "Blue Top"},
+  {"term": "Jeans", "expectedProduct": "Soft Stretch Jeans"},
+  {"term": "Saree", "expectedProduct": "Rust Red Linen Saree"}
+]

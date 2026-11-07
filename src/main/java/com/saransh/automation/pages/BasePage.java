@@ -4,6 +4,7 @@ import com.saransh.automation.config.ConfigManager;
 import org.openqa.selenium.By;
 import org.openqa.selenium.ElementClickInterceptedException;
 import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.StaleElementReferenceException;
 import org.openqa.selenium.TimeoutException;
 import org.openqa.selenium.WebDriver;
@@ -101,19 +102,24 @@ public abstract class BasePage {
      * strips ads and falls back to a JS click so flaky third-party content can't fail the test.
      */
     protected void click(By locator) {
-        wait.ignoring(StaleElementReferenceException.class).until(d -> {
-            WebElement el = d.findElement(locator);
-            scrollIntoView(el);
-            try {
-                ExpectedConditions.elementToBeClickable(el).apply(d);
-                el.click();
-            } catch (ElementClickInterceptedException e) {
-                log.debug("Click intercepted on {}, retrying via JS", locator);
-                handlePopups();
-                ((JavascriptExecutor) d).executeScript("arguments[0].click();", d.findElement(locator));
-            }
-            return true;
-        });
+        new WebDriverWait(driver, ConfigManager.explicitWait())
+                .ignoring(StaleElementReferenceException.class)
+                .ignoring(NoSuchElementException.class)
+                .until(d -> {
+                    WebElement el = d.findElement(locator);
+                    scrollIntoView(el);
+                    if (ExpectedConditions.elementToBeClickable(el).apply(d) == null) {
+                        return false; // not visible/enabled yet: keep waiting
+                    }
+                    try {
+                        el.click();
+                    } catch (ElementClickInterceptedException e) {
+                        log.debug("Click intercepted on {}, retrying via JS", locator);
+                        handlePopups();
+                        ((JavascriptExecutor) d).executeScript("arguments[0].click();", d.findElement(locator));
+                    }
+                    return true;
+                });
     }
 
     protected void type(By locator, String text) {

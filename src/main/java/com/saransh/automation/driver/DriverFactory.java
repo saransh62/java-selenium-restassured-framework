@@ -8,6 +8,7 @@ import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.firefox.FirefoxDriver;
 import org.openqa.selenium.firefox.FirefoxOptions;
+import org.openqa.selenium.remote.LocalFileDetector;
 import org.openqa.selenium.remote.RemoteWebDriver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,7 +55,10 @@ public final class DriverFactory {
                     : new ChromeDriver((ChromeOptions) options);
         } else {
             try {
-                driver = new RemoteWebDriver(URI.create(gridUrl).toURL(), options);
+                RemoteWebDriver remote = new RemoteWebDriver(URI.create(gridUrl).toURL(), options);
+                // Lets file uploads (sendKeys on <input type=file>) ship the local file to the Grid node.
+                remote.setFileDetector(new LocalFileDetector());
+                driver = remote;
             } catch (MalformedURLException e) {
                 throw new IllegalArgumentException("Invalid gridUrl: " + gridUrl, e);
             }

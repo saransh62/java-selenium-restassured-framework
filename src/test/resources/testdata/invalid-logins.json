@@ -1,0 +1,5 @@
+[
+  {"case": "unknown email", "email": "nobody_registered_here@example.com", "password": "Passw0rd!"},
+  {"case": "wrong password for unknown user", "email": "qa.invalid.user@example.com", "password": "wrong"},
+  {"case": "email with different casing", "email": "NOBODY_REGISTERED_HERE@EXAMPLE.COM", "password": "x"}
+]
